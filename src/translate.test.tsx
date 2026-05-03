@@ -236,6 +236,68 @@ describe('translate', () => {
     ]);
   });
 
+  it('Hide of a widgetId prefers a match in the mapping\'s curated sub-slots over an unrelated slot', () => {
+    /* Pins the "prefer candidate, fall back to anywhere" tie-breaker in
+     * locateOwningSlot. A duplicate id in an off-target slot shouldn\'t win
+     * over the curated one. */
+    const map: SlotMap = {
+      'legacy.v1': {
+        targetSlotId: 'fb.slot.curated',
+        targetDefaultContent: {
+          slotIds: ['fb.slot.curated'],
+          fromAppIds: ['fixture'],
+        },
+      },
+    };
+    const apps: App[] = [{
+      appId: 'fixture',
+      slots: [
+        { slotId: 'fb.slot.unrelated', id: 'shared.id', op: WidgetOperationTypes.APPEND, element: null },
+        { slotId: 'fb.slot.curated', id: 'shared.id', op: WidgetOperationTypes.APPEND, element: null },
+      ] as App['slots'],
+    }];
+    const ops = translate({
+      envConfig: { pluginSlots: { 'legacy.v1': { plugins: [{ op: 'hide', widgetId: 'shared.id' }] } } },
+      slotMap: map,
+      widgetMap: {},
+      apps,
+    });
+    expect(ops).toEqual([{
+      slotId: 'fb.slot.curated',
+      op: WidgetOperationTypes.REMOVE,
+      relatedId: 'shared.id',
+    }]);
+  });
+
+  it('Hide of a widgetId falls back to a non-curated slot when no curated match exists', () => {
+    const map: SlotMap = {
+      'legacy.v1': {
+        targetSlotId: 'fb.slot.curated',
+        targetDefaultContent: {
+          slotIds: ['fb.slot.curated'],
+          fromAppIds: ['fixture'],
+        },
+      },
+    };
+    const apps: App[] = [{
+      appId: 'fixture',
+      slots: [
+        { slotId: 'fb.slot.unrelated', id: 'orphan.id', op: WidgetOperationTypes.APPEND, element: null },
+      ] as App['slots'],
+    }];
+    const ops = translate({
+      envConfig: { pluginSlots: { 'legacy.v1': { plugins: [{ op: 'hide', widgetId: 'orphan.id' }] } } },
+      slotMap: map,
+      widgetMap: {},
+      apps,
+    });
+    expect(ops).toEqual([{
+      slotId: 'fb.slot.unrelated',
+      op: WidgetOperationTypes.REMOVE,
+      relatedId: 'orphan.id',
+    }]);
+  });
+
   it('translates Hide default_contents into a fan-out REMOVE per sub-slot widget plus synthetic defaultContent', () => {
     const ops = translate({
       envConfig: envConfig([{ op: 'hide', widgetId: 'default_contents' }]),

@@ -265,40 +265,35 @@ function locateOwningSlot(
     return widgetMap[widgetId];
   }
 
-  const candidateSlots = new Set<string>([
-    mapping.targetSlotId,
-    ...(mapping.targetDefaultContent?.slotIds ?? []),
-  ]);
+  /*
+   * When the mapping declares targetDefaultContent, prefer matches in the
+   * curated sub-slots and fall back to anywhere; otherwise any match is fine.
+   * Single pass: return early on a preferred match, otherwise remember the
+   * first fallback match and return it after the scan completes.
+   */
+  const candidateSlots = mapping.targetDefaultContent
+    ? new Set<string>([mapping.targetSlotId, ...(mapping.targetDefaultContent.slotIds ?? [])])
+    : null;
 
+  let fallback: string | null = null;
   for (const app of apps) {
     if (!Array.isArray(app.slots)) {
       continue;
     }
     for (const op of app.slots) {
-      if (!candidateSlots.has(op.slotId) && mapping.targetDefaultContent) {
+      const id = (op as { id?: string }).id;
+      if (id !== widgetId) {
         continue;
       }
-      const id = (op as { id?: string }).id;
-      if (id === widgetId) {
+      if (candidateSlots === null || candidateSlots.has(op.slotId)) {
         return op.slotId;
+      }
+      if (fallback === null) {
+        fallback = op.slotId;
       }
     }
   }
-
-  /* Fallback: widget may live outside the curated sub-slots. */
-  for (const app of apps) {
-    if (!Array.isArray(app.slots)) {
-      continue;
-    }
-    for (const op of app.slots) {
-      const id = (op as { id?: string }).id;
-      if (id === widgetId) {
-        return op.slotId;
-      }
-    }
-  }
-
-  return null;
+  return fallback;
 }
 
 function emitWrap(
