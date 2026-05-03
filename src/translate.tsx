@@ -28,7 +28,7 @@ interface TranslateArgs {
   apps: App[],
 }
 
-const SYNTHETIC_DEFAULT_CONTENT_ID = 'defaultContent';
+const defaultContentId = 'defaultContent';
 
 /* Pure translation. The lazy `slots` getter calls this once; tests call it directly. */
 export function translate({
@@ -203,7 +203,7 @@ function emitHideDefaults(
     out.push({
       slotId,
       op: WidgetOperationTypes.REMOVE,
-      relatedId: SYNTHETIC_DEFAULT_CONTENT_ID,
+      relatedId: defaultContentId,
     });
   }
 
@@ -321,7 +321,7 @@ function emitWrap(
       return [{
         slotId: mapping.targetSlotId,
         op: LayoutOperationTypes.REPLACE,
-        component: createWrapLayout({ wrapper, widgetId: SYNTHETIC_DEFAULT_CONTENT_ID }),
+        component: createWrapLayout({ wrapper, widgetId: defaultContentId }),
       }];
     }
     /* Split: best-effort wrap of every widget in each sub-slot (over-wraps Inserts). */
