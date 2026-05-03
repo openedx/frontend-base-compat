@@ -16,6 +16,7 @@ const helpButtonWidgetId = 'org.openedx.frontend.widget.header.help.v1';
 const desktopLogoWidgetId = 'org.openedx.frontend.widget.header.desktopLogo.v1';
 const desktopPrimaryLinksWidgetId = 'org.openedx.frontend.widget.header.desktopPrimaryLinks.v1';
 const desktopSecondaryLinksWidgetId = 'org.openedx.frontend.widget.header.desktopSecondaryLinks.v1';
+const desktopAuthenticatedMenuWidgetId = 'org.openedx.frontend.widget.header.desktopAuthenticatedMenu.v1';
 
 /* frontend-component-header plugin-slots -> frontend-base/shell/header sub-slots. */
 export const headerSlotMap: SlotMap = {
@@ -31,6 +32,7 @@ export const headerSlotMap: SlotMap = {
   'org.openedx.frontend.layout.header_logo.v1': {
     sourceAliases: ['logo_slot'],
     targetSlotId: desktopLeftSlotId,
+    insertBefore: desktopPrimaryLinksWidgetId,
     /* Hide must spare the primary nav links that share desktopLeft. */
     targetDefaultContent: {
       widgetMap: { [desktopLogoWidgetId]: desktopLeftSlotId },
@@ -46,6 +48,7 @@ export const headerSlotMap: SlotMap = {
   'org.openedx.frontend.layout.header_desktop_secondary_menu.v2': {
     sourceAliases: ['desktop_secondary_menu_slot'],
     targetSlotId: desktopRightSlotId,
+    insertBefore: desktopAuthenticatedMenuWidgetId,
     /* Hide must spare auth/anon menus that share desktopRight. */
     targetDefaultContent: {
       widgetMap: { [desktopSecondaryLinksWidgetId]: desktopRightSlotId },

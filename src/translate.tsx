@@ -15,6 +15,7 @@ import {
   LegacyPluginEntry,
   LegacyWrapEntry,
   SlotMap,
+  SlotMappingEntry,
   TranslateOutput,
   WidgetMap,
 } from './types';
@@ -62,7 +63,7 @@ export function translate({
     for (const plugin of sorted) {
       switch (plugin.op) {
         case 'insert':
-          ops.push(...emitInsert(plugin, entry.targetSlotId, widgetMap));
+          ops.push(...emitInsert(plugin, entry, widgetMap));
           break;
         case 'hide':
           ops.push(...emitHide(plugin, entry, widgetMap, apps));
@@ -97,37 +98,38 @@ function priorityOf(entry: LegacyPluginEntry): number {
 
 function emitInsert(
   entry: LegacyInsertEntry,
-  fallbackSlotId: string,
+  mapping: SlotMappingEntry,
   widgetMap: WidgetMap,
 ): SlotOperation[] {
   const widget = entry.widget;
-  const slotId = widgetMap[widget.id] ?? fallbackSlotId;
+  const overrideSlotId = widgetMap[widget.id];
+  const slotId = overrideSlotId ?? mapping.targetSlotId;
+
+  /* Anchor only applies when the widget lands in the slot the mapping declared. */
+  const anchor = overrideSlotId ? null : resolveInsertAnchor(mapping);
 
   if (widget.type === 'IFRAME_PLUGIN') {
-    return [{
+    return [withAnchor({
       slotId,
       id: widget.id,
-      op: WidgetOperationTypes.APPEND,
       element: <IFrameWidget url={widget.url} title={widget.title} />,
-    }];
+    }, anchor)];
   }
 
   if (widget.type === 'DIRECT_PLUGIN') {
     const renderer = widget.RenderWidget;
     if (isValidElement(renderer)) {
-      return [{
+      return [withAnchor({
         slotId,
         id: widget.id,
-        op: WidgetOperationTypes.APPEND,
         element: renderer,
-      }];
+      }, anchor)];
     }
-    return [{
+    return [withAnchor({
       slotId,
       id: widget.id,
-      op: WidgetOperationTypes.APPEND,
       component: renderer as ComponentType,
-    }];
+    }, anchor)];
   }
 
   /* Cast lets us read `id`/`type` after the union has been exhausted above. */
@@ -137,6 +139,28 @@ function emitInsert(
     `[fpf-compat] unknown widget type "${unknown.type}" for "${unknown.id}"; skipping.`,
   );
   return [];
+}
+
+type InsertAnchor = { op: WidgetOperationTypes.INSERT_BEFORE | WidgetOperationTypes.INSERT_AFTER, relatedId: string };
+
+function resolveInsertAnchor(mapping: SlotMappingEntry): InsertAnchor | null {
+  if (mapping.insertBefore) {
+    return { op: WidgetOperationTypes.INSERT_BEFORE, relatedId: mapping.insertBefore };
+  }
+  if (mapping.insertAfter) {
+    return { op: WidgetOperationTypes.INSERT_AFTER, relatedId: mapping.insertAfter };
+  }
+  return null;
+}
+
+function withAnchor(
+  base: { slotId: string, id: string, element?: ReactElement, component?: ComponentType },
+  anchor: InsertAnchor | null,
+): SlotOperation {
+  if (anchor) {
+    return { ...base, op: anchor.op, relatedId: anchor.relatedId } as SlotOperation;
+  }
+  return { ...base, op: WidgetOperationTypes.APPEND } as SlotOperation;
 }
 
 function emitHide(

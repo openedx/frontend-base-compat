@@ -131,6 +131,79 @@ describe('translate', () => {
     expect((ops[0] as any).slotId).toBe(DESKTOP_LEFT);
   });
 
+  it('emits INSERT_BEFORE when the slot mapping declares insertBefore', () => {
+    const map: SlotMap = {
+      'legacy.v1': {
+        targetSlotId: 'fb.slot.a',
+        insertBefore: 'fb.widget.anchor',
+      },
+    };
+    const ops = translate({
+      envConfig: { pluginSlots: { 'legacy.v1': { plugins: [{
+        op: 'insert',
+        widget: { id: 'acme.x', type: 'DIRECT_PLUGIN', RenderWidget: SimpleWidget },
+      }] } } },
+      slotMap: map,
+      widgetMap: {},
+      apps: [],
+    });
+    expect(ops).toEqual([
+      {
+        slotId: 'fb.slot.a',
+        id: 'acme.x',
+        op: WidgetOperationTypes.INSERT_BEFORE,
+        relatedId: 'fb.widget.anchor',
+        component: SimpleWidget,
+      },
+    ]);
+  });
+
+  it('emits INSERT_AFTER when the slot mapping declares insertAfter', () => {
+    const map: SlotMap = {
+      'legacy.v1': {
+        targetSlotId: 'fb.slot.a',
+        insertAfter: 'fb.widget.anchor',
+      },
+    };
+    const ops = translate({
+      envConfig: { pluginSlots: { 'legacy.v1': { plugins: [{
+        op: 'insert',
+        widget: { id: 'acme.x', type: 'DIRECT_PLUGIN', RenderWidget: SimpleWidget },
+      }] } } },
+      slotMap: map,
+      widgetMap: {},
+      apps: [],
+    });
+    expect((ops[0] as any).op).toBe(WidgetOperationTypes.INSERT_AFTER);
+    expect((ops[0] as any).relatedId).toBe('fb.widget.anchor');
+  });
+
+  it('falls back to APPEND when widgetMap routes the Insert to a different slot than the mapping', () => {
+    const map: SlotMap = {
+      'legacy.v1': {
+        targetSlotId: 'fb.slot.a',
+        insertBefore: 'fb.widget.anchor',
+      },
+    };
+    const ops = translate({
+      envConfig: { pluginSlots: { 'legacy.v1': { plugins: [{
+        op: 'insert',
+        widget: { id: 'acme.x', type: 'DIRECT_PLUGIN', RenderWidget: SimpleWidget },
+      }] } } },
+      slotMap: map,
+      widgetMap: { 'acme.x': 'fb.slot.b' },
+      apps: [],
+    });
+    expect(ops).toEqual([
+      {
+        slotId: 'fb.slot.b',
+        id: 'acme.x',
+        op: WidgetOperationTypes.APPEND,
+        component: SimpleWidget,
+      },
+    ]);
+  });
+
   it('orders Inserts by priority ascending', () => {
     const ops = translate({
       envConfig: envConfig([
