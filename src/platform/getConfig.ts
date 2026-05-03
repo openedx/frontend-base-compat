@@ -28,27 +28,25 @@ export const SITE_CONFIG_TRANSLATION_MAP: Record<string, string> = {
   SEGMENT_KEY: 'segmentKey',
 };
 
-type AnyRecord = Record<string, any>;
-
-function siteAsRecord(): AnyRecord {
-  return getSiteConfig() as unknown as AnyRecord;
-}
+/* Public-API shape: legacy callers do `getConfig().LMS_BASE_URL`, which only
+ * type-checks against `any`-valued properties. */
+type LegacyConfig = Record<string, any>;
 
 function lookup(prop: string): { found: boolean, value: unknown } {
-  const site = siteAsRecord();
+  const site = getSiteConfig();
   if (Object.prototype.hasOwnProperty.call(SITE_CONFIG_TRANSLATION_MAP, prop)) {
     const camel = SITE_CONFIG_TRANSLATION_MAP[prop];
-    const value = site[camel];
+    const value = Reflect.get(site, camel) as unknown;
     return { found: value !== undefined, value };
   }
-  const bag = site.commonAppConfig as AnyRecord | undefined;
+  const bag = site.commonAppConfig;
   if (bag && Object.prototype.hasOwnProperty.call(bag, prop)) {
     return { found: true, value: bag[prop] };
   }
   return { found: false, value: undefined };
 }
 
-const handler: ProxyHandler<AnyRecord> = {
+const handler: ProxyHandler<LegacyConfig> = {
   get(_target, prop) {
     if (typeof prop !== 'string') {
       return undefined;
@@ -64,15 +62,15 @@ const handler: ProxyHandler<AnyRecord> = {
   },
 
   ownKeys() {
-    const site = siteAsRecord();
+    const site = getSiteConfig();
     const keys = new Set<string>();
     for (const upper of Object.keys(SITE_CONFIG_TRANSLATION_MAP)) {
       const camel = SITE_CONFIG_TRANSLATION_MAP[upper];
-      if (site[camel] !== undefined) {
+      if (Reflect.get(site, camel) !== undefined) {
         keys.add(upper);
       }
     }
-    const bag = site.commonAppConfig as AnyRecord | undefined;
+    const bag = site.commonAppConfig;
     if (bag) {
       for (const k of Object.keys(bag)) {
         keys.add(k);
@@ -93,7 +91,7 @@ const handler: ProxyHandler<AnyRecord> = {
   },
 };
 
-const proxy: AnyRecord = new Proxy<AnyRecord>({}, handler);
+const proxy: LegacyConfig = new Proxy<LegacyConfig>({}, handler);
 
 /**
  * Drop-in replacement for `@edx/frontend-platform`'s `getConfig()`.
@@ -103,6 +101,6 @@ const proxy: AnyRecord = new Proxy<AnyRecord>({}, handler);
  * UPPER_SNAKE_CASE keys are resolved against `SITE_CONFIG_TRANSLATION_MAP`
  * first; unmatched keys fall through to `getSiteConfig().commonAppConfig`.
  */
-export function getConfig(): AnyRecord {
+export function getConfig(): LegacyConfig {
   return proxy;
 }

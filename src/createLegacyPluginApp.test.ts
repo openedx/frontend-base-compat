@@ -84,7 +84,7 @@ describe('createLegacyPluginApp', () => {
     });
 
     setSiteConfig({ siteId: 'test', apps: [app] } as any);
-    const before = app.slots;
+    const before = app.slots!;
     /* No header app yet -> only the synthetic defaultContent REMOVEs. */
     expect(before.some((op) => (op as any).relatedId === 'org.openedx.frontend.widget.header.desktopLogo.v1')).toBe(false);
 
@@ -106,7 +106,7 @@ describe('createLegacyPluginApp', () => {
       ],
     } as any);
 
-    const after = app.slots;
+    const after = app.slots!;
     expect(after).not.toBe(before);
     expect(after.some((op) => (op as any).relatedId === 'org.openedx.frontend.widget.header.desktopLogo.v1')).toBe(true);
   });
