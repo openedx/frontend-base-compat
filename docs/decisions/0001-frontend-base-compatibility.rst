@@ -254,6 +254,8 @@ It does not commit to:
 - Translating non-curated ``getConfig`` keys via algorithmic
   snake-to-camel.
 - Per-app ``getConfig`` (FPF plugins are appId-agnostic by design).
+- Shimming legacy DOM markup or CSS selectors so that brand and plugin
+  stylesheets written against the old chrome keep matching.
 - Long-term maintenance: the shim is a migration aid, expected to be
   removed when the FPF deprecation window closes.
 
@@ -299,6 +301,23 @@ split-slot ``default_contents`` there is no single ReactNode to merge
 into.  Rather than ship a half-translation that works in some cases and
 warns in others, both operations are treated as untranslated and warn
 uniformly; plugin authors are expected to migrate to widget options.
+
+Shimming legacy DOM markup or CSS selectors
+-------------------------------------------
+
+Brand and plugin stylesheets written against legacy MFE markup
+(``header.site-header-desktop``, ``.studio-header``,
+``footer.footer .footer-top``, ...) no longer match what frontend-base
+renders.  A chrome-level shim that wraps each slot in a legacy outer
+element was considered and rejected: legacy CSS can reach into
+descendants whose class hooks frontend-base does not preserve, so the
+foothold covers very little of the affected styling.  A faithful shim
+would require either DOM rewriting (brittle, every-render cost) or
+build-time selector translation (requires a curated mapping per
+selector), neither of which is a defensible commitment for a
+finite-lifetime migration aid.  Operators are expected to rewrite
+affected CSS to target current frontend-base markup, or apply the
+equivalent overrides through brand theming.
 
 Splitting frontend-platform and FPF shims into separate packages
 ----------------------------------------------------------------

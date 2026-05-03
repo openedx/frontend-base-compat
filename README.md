@@ -102,6 +102,10 @@ Tutor sites get this wiring out of the box from `tutor-mfe`'s `env.config.compat
 | `Modify`, `slotOptions.mergeProps` | Not translated; warn once per occurrence. |
 | `priority` | Consumed as a sort key over translated ops. |
 
+## CSS
+
+The shim does not shim DOM or CSS. Brand and plugin stylesheets written against legacy MFE markup no longer match what frontend-base renders, and operators are expected to rewrite the affected selectors or move the styling into brand theming. See [ADR 0001](docs/decisions/0001-frontend-base-compatibility.rst) for why a CSS shim is out of scope.
+
 ## Status
 
 This package is a migration aid and is expected to be removed when the FPF deprecation timeline closes.
