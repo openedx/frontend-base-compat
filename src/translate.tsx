@@ -165,13 +165,10 @@ function withAnchor(
 
 function emitHide(
   entry: LegacyHideEntry,
-  mapping: ReturnType<typeof resolveSlotEntry>,
+  mapping: NonNullable<ReturnType<typeof resolveSlotEntry>>,
   widgetMap: WidgetMap,
   apps: App[],
 ): SlotOperation[] {
-  if (mapping === null) {
-    return [];
-  }
   if (entry.widgetId === 'default_contents') {
     return emitHideDefaults(mapping, apps);
   }
