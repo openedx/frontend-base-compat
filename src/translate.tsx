@@ -141,7 +141,10 @@ function emitInsert(
   return [];
 }
 
-type InsertAnchor = { op: WidgetOperationTypes.INSERT_BEFORE | WidgetOperationTypes.INSERT_AFTER, relatedId: string };
+interface InsertAnchor {
+  op: WidgetOperationTypes.INSERT_BEFORE | WidgetOperationTypes.INSERT_AFTER,
+  relatedId: string,
+}
 
 function resolveInsertAnchor(mapping: SlotMappingEntry): InsertAnchor | null {
   if (mapping.insertBefore) {
