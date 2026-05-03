@@ -56,24 +56,59 @@ describe('createLegacyPluginApp', () => {
     });
   });
 
-  it('caches the translated slots across multiple accesses', () => {
-    let invoked = 0;
-    const setConfig = () => {
-      invoked += 1;
-      return { pluginSlots: {} };
-    };
-
+  it('reuses translated slots across reads while the apps reference is unchanged', () => {
     const app = createLegacyPluginApp({
       appId: COMPAT_APP_ID,
-      envConfig: setConfig,
+      envConfig: () => ({ pluginSlots: {} }),
     });
 
     setSiteConfig({ siteId: 'test', apps: [app] } as any);
 
-    void app.slots;
-    void app.slots;
+    expect(app.slots).toBe(app.slots);
+  });
 
-    expect(invoked).toBe(1);
+  it('re-translates when getSiteConfig().apps is replaced', () => {
+    /* setSiteConfig and mergeSiteConfig both swap the apps reference, so the
+     * cache must invalidate or the compat app would render stale ops against
+     * apps that registered later. */
+    const app = createLegacyPluginApp({
+      appId: COMPAT_APP_ID,
+      envConfig: () => ({
+        pluginSlots: {
+          'org.openedx.frontend.layout.header_desktop.v1': {
+            keepDefault: false,
+            plugins: [],
+          },
+        },
+      }),
+    });
+
+    setSiteConfig({ siteId: 'test', apps: [app] } as any);
+    const before = app.slots;
+    /* No header app yet -> only the synthetic defaultContent REMOVEs. */
+    expect(before.some((op) => (op as any).relatedId === 'org.openedx.frontend.widget.header.desktopLogo.v1')).toBe(false);
+
+    setSiteConfig({
+      siteId: 'test',
+      apps: [
+        {
+          appId: HEADER_APP_ID,
+          slots: [
+            {
+              slotId: DESKTOP_LEFT,
+              id: 'org.openedx.frontend.widget.header.desktopLogo.v1',
+              op: WidgetOperationTypes.APPEND,
+              element: null,
+            },
+          ],
+        },
+        app,
+      ],
+    } as any);
+
+    const after = app.slots;
+    expect(after).not.toBe(before);
+    expect(after.some((op) => (op as any).relatedId === 'org.openedx.frontend.widget.header.desktopLogo.v1')).toBe(true);
   });
 
   it('filters its own appId out of the apps it introspects', () => {

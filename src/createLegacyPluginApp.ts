@@ -9,7 +9,12 @@ import {
   LegacyPluginAppArgs,
 } from './types';
 
-/* App.slots is a lazy getter so the translator can introspect siblings (ADR 0001). */
+/*
+ * App.slots is a lazy getter so the translator can introspect siblings (ADR 0001).
+ * frontend-base reads `app.slots` on every <Slot> render via getSlotOperations,
+ * so we memoize translate() output and re-run only when getSiteConfig().apps
+ * is replaced (setSiteConfig / mergeSiteConfig both swap the apps reference).
+ */
 export function createLegacyPluginApp({
   appId,
   envConfig,
@@ -17,20 +22,23 @@ export function createLegacyPluginApp({
   widgetMap = defaultWidgetMap,
 }: LegacyPluginAppArgs): App {
   const legacyConfig = resolveEnvConfig(envConfig);
-  let cached: SlotOperation[] | null = null;
+  let cachedApps: App[] | undefined;
+  let cachedOps: SlotOperation[] = [];
 
   return {
     appId,
     get slots(): SlotOperation[] {
-      if (cached === null) {
-        cached = translate({
+      const apps = getSiteConfig().apps;
+      if (apps !== cachedApps) {
+        cachedApps = apps;
+        cachedOps = translate({
           envConfig: legacyConfig,
           slotMap,
           widgetMap,
-          apps: getSiteConfig().apps?.filter((a) => a.appId !== appId) ?? [],
+          apps: apps?.filter((a) => a.appId !== appId) ?? [],
         });
       }
-      return cached;
+      return cachedOps;
     },
   };
 }
