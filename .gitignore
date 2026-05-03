@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+coverage
+dist/
+packages/
+/.turbo
+/turbo.json
+/*.tgz
+
+### Editors ###
+.DS_Store
+*~
+/temp
+/.vscode

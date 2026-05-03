@@ -1,0 +1,53 @@
+{
+  "name": "@openedx/frontend-base-compat",
+  "version": "0.0.0-dev",
+  "description": "Compatibility shim that lets legacy frontend code run on @openedx/frontend-base.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openedx/frontend-base-compat.git"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./i18n": "./dist/platform/i18n.js",
+    "./auth": "./dist/platform/auth.js"
+  },
+  "files": [
+    "/dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "make build",
+    "clean": "make clean",
+    "lint": "openedx lint .",
+    "lint:fix": "openedx lint --fix .",
+    "prepack": "npm run clean && npm run build",
+    "test": "openedx test --coverage --passWithNoTests",
+    "watch:build": "nodemon --exec 'npm run build'"
+  },
+  "author": "Open edX",
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/openedx/frontend-base-compat#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/openedx/frontend-base-compat/issues"
+  },
+  "devDependencies": {
+    "@openedx/frontend-base": "^1.0.0-alpha || 0.0.0-dev",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/jest": "^29.5.14",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "jest": "^29",
+    "nodemon": "^3.1.14",
+    "react": "^18",
+    "react-dom": "^18",
+    "tsc-alias": "^1.8.16"
+  },
+  "peerDependencies": {
+    "@openedx/frontend-base": "^1.0.0-alpha || 0.0.0-dev",
+    "react": "^18"
+  }
+}
