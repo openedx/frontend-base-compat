@@ -4,39 +4,49 @@ A compatibility layer that lets legacy `@edx/frontend-platform` consumers and le
 
 The package does three coupled jobs from one install:
 
-- **`@edx/frontend-platform` drop-in.** It re-exports the i18n and auth surfaces from frontend-base (so `useIntl`, `defineMessages`, `getAuthenticatedHttpClient`, etc. resolve to frontend-base's implementations), and exposes a `getConfig` adapter that reads through to `getSiteConfig()` and `commonAppConfig`. An `overrides` entry routes `@edx/frontend-platform[/...]` to the compat package, so real frontend-platform is never installed.
+- **`@edx/frontend-platform` drop-in.** It re-exports the i18n and auth surfaces from frontend-base (so `useIntl`, `defineMessages`, `getAuthenticatedHttpClient`, etc. resolve to frontend-base's implementations), and exposes a `getConfig` adapter that reads through to `getSiteConfig()` and `commonAppConfig`. A dependency alias points `@edx/frontend-platform[/...]` at the compat package, so real frontend-platform is never installed.
 
-- **FPF drop-in.** It re-exports the public surface of `@openedx/frontend-plugin-framework` (`Plugin`, `PluginSlot`, `DIRECT_PLUGIN`, `IFRAME_PLUGIN`, `PLUGIN_OPERATIONS`) so the package can stand in for FPF via a second `overrides` entry.
+- **FPF drop-in.** It re-exports the public surface of `@openedx/frontend-plugin-framework` (`Plugin`, `PluginSlot`, `DIRECT_PLUGIN`, `IFRAME_PLUGIN`, `PLUGIN_OPERATIONS`) so the package can stand in for FPF via a second dependency alias.
 
 - **FPF translation.** It exports `createLegacyPluginApp({ envConfig, appId, slotMap?, widgetMap? })`, which invokes a legacy `setConfig` function, translates its `pluginSlots` into a frontend-base `SlotOperation[]`, and returns an `App` whose `slots` carry the result.
 
 See [ADR 0001](docs/decisions/0001-frontend-base-compatibility.rst) for the design and trade-offs.
 
+## What this _doesn't_ do
+
+The compat package only covers the runtime import surface of `@edx/frontend-platform` and `@openedx/frontend-plugin-framework`. The following concerns sit outside that boundary:
+
+### Branding (DOM and CSS)
+
+The shim does not shim DOM or CSS. Brand and plugin stylesheets written against legacy MFE markup no longer match what frontend-base renders, and operators are expected to rewrite the affected selectors or move the styling into brand theming. See [ADR 0001](docs/decisions/0001-frontend-base-compatibility.rst) for why a CSS shim is out of scope.
+
+### Build tooling (`@openedx/frontend-build` / `fedx-scripts`)
+
+The compat package does not provide any shims for `@openedx/frontend-build`. Plugin packages that ship `preinstall` hooks invoking `fedx-scripts` will fail to install in a frontend-base site, because the consumer tree does not have those build tools or the plugin's devDependencies.
+
 ## Install
 
-```sh
-npm install @openedx/frontend-base-compat
-```
-
-Then, in the site's `package.json`, add an `overrides` block so any frontend-platform or FPF import in the dependency tree resolves to the compat package's stubs and neither real package is installed:
+In the site's `package.json`, install the compat package directly (so operator code can `import { createLegacyPluginApp, defaultSlotMap, ... } from '@openedx/frontend-base-compat'`), alias `@edx/frontend-platform` and `@openedx/frontend-plugin-framework` to it, and mirror those aliases in `overrides` with the exact same specs:
 
 ```json
 {
   "dependencies": {
-    "@openedx/frontend-base-compat": "^1.0.0"
+    "@openedx/frontend-base-compat": "^1.0.0",
+    "@edx/frontend-platform": "npm:@openedx/frontend-base-compat@^1.0.0",
+    "@openedx/frontend-plugin-framework": "npm:@openedx/frontend-base-compat@^1.0.0"
   },
   "overrides": {
-    "@edx/frontend-platform":
-      "npm:@openedx/frontend-base-compat@^1.0.0",
-    "@openedx/frontend-plugin-framework":
-      "npm:@openedx/frontend-base-compat@^1.0.0"
+    "@edx/frontend-platform": "npm:@openedx/frontend-base-compat@^1.0.0",
+    "@openedx/frontend-plugin-framework": "npm:@openedx/frontend-base-compat@^1.0.0"
   }
 }
 ```
 
+The direct entry puts the compat package at `node_modules/@openedx/frontend-base-compat/` for the site's own imports. The two aliases additionally place the package at `node_modules/@edx/frontend-platform/` and `node_modules/@openedx/frontend-plugin-framework/`, so any import of either legacy name resolves to the stubs. The matching `overrides` entries force every transitive resolution (peer or regular) to the same alias, which is what lets plugins that pin these as peer dependencies at the real version ranges (e.g. `@openedx/frontend-plugin-aspects`, which pins `@edx/frontend-platform: ^8.3.1` and `@openedx/frontend-plugin-framework: ^1.7.0`) install without `ERESOLVE` and without needing `--legacy-peer-deps`. The two specs must match exactly; npm errors if a direct dep and its override disagree.
+
 ## `@edx/frontend-platform` compatibility
 
-With the first `overrides` entry in place, plugin code that imports from `@edx/frontend-platform` keeps working unchanged:
+With the first alias in place, plugin code that imports from `@edx/frontend-platform` keeps working unchanged:
 
 ```ts
 import { getConfig, camelCaseObject } from '@edx/frontend-platform';
@@ -91,7 +101,7 @@ createLegacyPluginApp({
 
 Tutor sites get this wiring out of the box from `tutor-mfe`'s `env.config.compat.jsx` template, where downstream Tutor plugins contribute deltas via `ENV_PATCHES` hooks.
 
-## Supported FPF translations
+### Supported FPF translations
 
 | FPF op | Translation |
 | --- | --- |
@@ -102,13 +112,9 @@ Tutor sites get this wiring out of the box from `tutor-mfe`'s `env.config.compat
 | `Modify`, `slotOptions.mergeProps` | Not translated; warn once per occurrence. |
 | `priority` | Consumed as a sort key over translated ops. |
 
-## CSS
-
-The shim does not shim DOM or CSS. Brand and plugin stylesheets written against legacy MFE markup no longer match what frontend-base renders, and operators are expected to rewrite the affected selectors or move the styling into brand theming. See [ADR 0001](docs/decisions/0001-frontend-base-compatibility.rst) for why a CSS shim is out of scope.
-
 ## Status
 
-This package is a migration aid and is expected to be removed when the FPF deprecation timeline closes.
+This package is a migration aid and is expected to be removed when the MFE deprecation timeline closes.
 
 ## License
 
