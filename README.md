@@ -63,11 +63,11 @@ Unknown keys return `undefined`. The Proxy re-reads `getSiteConfig()` on every a
 
 ## FPF compatibility
 
-In `site.config.build.tsx` / `site.config.dev.tsx`, import the legacy `env.config.jsx` and register a shim `App`:
+Place the legacy `env.config.jsx` under the site's `src/` directory. (The frontend-base webpack config only runs `ts-loader` over files in `src/`.)  Then, in `site.config.build.tsx` / `site.config.dev.tsx`, import the legacy config and register a shim `App`:
 
 ```tsx
 import { createLegacyPluginApp } from '@openedx/frontend-base-compat';
-import envConfig from './env.config.jsx';
+import envConfig from './src/env.config.jsx';
 
 const config: SiteConfig = {
   // ...
@@ -89,7 +89,7 @@ import {
   defaultSlotMap,
   defaultWidgetMap,
 } from '@openedx/frontend-base-compat';
-import envConfig, { compatSlotMap, compatWidgetMap } from './env.config.compat.jsx';
+import envConfig, { compatSlotMap, compatWidgetMap } from './src/env.config.compat.jsx';
 
 createLegacyPluginApp({
   appId: 'org.openedx.frontend.app.compat',
@@ -98,8 +98,6 @@ createLegacyPluginApp({
   widgetMap: { ...defaultWidgetMap, ...compatWidgetMap },
 });
 ```
-
-Tutor sites get this wiring out of the box from `tutor-mfe`'s `env.config.compat.jsx` template, where downstream Tutor plugins contribute deltas via `ENV_PATCHES` hooks.
 
 ### Supported FPF translations
 
