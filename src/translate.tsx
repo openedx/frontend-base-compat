@@ -26,6 +26,7 @@ interface TranslateArgs {
   slotMap: SlotMap,
   widgetMap: WidgetMap,
   apps: App[],
+  routeRoles?: string[],
 }
 
 const defaultContentId = 'defaultContent';
@@ -36,6 +37,7 @@ export function translate({
   slotMap,
   widgetMap,
   apps,
+  routeRoles,
 }: TranslateArgs): TranslateOutput {
   const ops: SlotOperation[] = [];
   const pluginSlots = envConfig.pluginSlots ?? {};
@@ -84,6 +86,13 @@ export function translate({
           );
       }
     }
+  }
+
+  if (routeRoles && routeRoles.length > 0) {
+    return ops.map((op) => ({
+      ...op,
+      condition: { ...(op.condition ?? {}), active: routeRoles },
+    }));
   }
 
   return ops;

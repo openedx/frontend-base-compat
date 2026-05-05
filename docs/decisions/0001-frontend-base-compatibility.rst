@@ -72,10 +72,13 @@ install:
   looks the legacy id up in the slot-mapping table and renders
   frontend-base's ``<Slot>`` for the matched target.
 
-- **FPF translation.** Exports ``createLegacyPluginApp({ envConfig, appId,
-  slotMap?, widgetMap? })``, which invokes a legacy ``setConfig`` function,
-  translates its ``pluginSlots`` into a ``SlotOperation[]``, and returns a
-  frontend-base ``App``.
+- **FPF translation.** Exports ``createLegacyPluginApp({ appId, envConfig,
+  mfeId?, routeMap?, slotMap?, widgetMap? })``, which invokes a legacy
+  ``setConfig`` function, translates its ``pluginSlots`` into a
+  ``SlotOperation[]``, and returns a frontend-base ``App``.  The optional
+  ``mfeId`` opts every translated op into a route-role ``condition`` so a
+  legacy ``env.config.jsx`` only takes effect on its MFE's routes (see
+  "Configuration loading" below).
 
 Both legacy packages are wired up via a single npm ``overrides`` block in
 the site's ``package.json`` that aliases both ``@edx/frontend-platform`` and
@@ -225,6 +228,17 @@ global "legacy config" namespace, and keep the build graph explicit.
 The shim ``App`` has no ``routes`` or ``providers`` of its own; its only
 job is to deliver translated operations into the site's runtime.
 
+Once more than one MFE's config is hosted in the same shell, every app's
+slot ops would otherwise apply on every route, and a ``Hide`` declared
+in one MFE's ``env.config.jsx`` could leak onto another MFE's chrome.
+Operators opt in to per-MFE scoping by passing ``mfeId``.  The shim
+resolves it through a curated ``mfeId -> routeRoles[]`` table and
+attaches a route-role ``condition`` to every emitted op, so the legacy
+config only takes effect on its MFE's routes.  When ``mfeId`` is set
+but the table has no entry for it, the shim warns and registers the
+app as a no-op; falling back to the unscoped path would defeat the
+opt-in.
+
 
 Scope
 =====
@@ -237,7 +251,8 @@ This ADR commits to:
   widget mapping tables, the FPF surface re-exports, the ``getConfig``
   adapter, and frontend-base's i18n/auth surfaces under
   frontend-platform-shaped subpaths.
-- An slot-mapping table, split into per-app files for drop-in extension.
+- A ``defaultRouteMap`` of legacy ``mfeId -> routeRoles[]``.
+- A ``defaultSlotMap``, split into per-app files for drop-in extension.
 - A ``defaultWidgetMap``.
 - A ``getConfig`` adapter whose curated map mirrors edx-platform's
   ``SITE_CONFIG_TRANSLATION_MAP`` exactly, with fall-through to
@@ -248,9 +263,8 @@ This ADR commits to:
 
 It does not commit to:
 
-- Loading ``env.config.jsx`` from MFE-repo paths at runtime.
 - Translating ``Modify`` or ``mergeProps``.
-- Supporting plugins that rely on FPF-private React context.
+- Supporting plugins that rely on private React context.
 - Translating non-curated ``getConfig`` keys via algorithmic
   snake-to-camel.
 - Per-app ``getConfig`` (FPF plugins are appId-agnostic by design).

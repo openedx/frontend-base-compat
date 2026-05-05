@@ -77,6 +77,9 @@ export type LegacyEnvConfigInput =
 /* Routing override: `widgetId` -> frontend-base slot id. */
 export type WidgetMap = Record<string, string>;
 
+/* `mfeId` (e.g. `authn`, `learner-dashboard`) -> route roles for that MFE. */
+export type RouteMap = Record<string, string[]>;
+
 export interface SlotMappingEntry {
   /* Legacy `idAliases` accepted by the old slot. */
   sourceAliases?: string[],
@@ -111,6 +114,8 @@ export type SlotMap = Record<string, SlotMappingEntry>;
 export interface LegacyPluginAppArgs {
   appId: string,
   envConfig: LegacyEnvConfigInput,
+  mfeId?: string,
+  routeMap?: RouteMap,
   slotMap?: SlotMap,
   widgetMap?: WidgetMap,
 }
@@ -121,6 +126,7 @@ export interface TranslateInput {
   slotMap: SlotMap,
   widgetMap: WidgetMap,
   apps: App[],
+  routeRoles?: string[],
 }
 
 export type TranslateOutput = SlotOperation[];

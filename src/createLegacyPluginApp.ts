@@ -1,5 +1,6 @@
 import { App, getSiteConfig, SlotOperation } from '@openedx/frontend-base';
 
+import { defaultRouteMap } from './mappings/routeMap';
 import { defaultSlotMap } from './mappings/slotMap';
 import { defaultWidgetMap } from './mappings/widgetMap';
 import { translate } from './translate';
@@ -18,9 +19,19 @@ import {
 export function createLegacyPluginApp({
   appId,
   envConfig,
+  mfeId,
+  routeMap = defaultRouteMap,
   slotMap = defaultSlotMap,
   widgetMap = defaultWidgetMap,
 }: LegacyPluginAppArgs): App {
+  const routeRoles = mfeId ? routeMap[mfeId] : undefined;
+  if (mfeId !== undefined && (!routeRoles || routeRoles.length === 0)) {
+    console.warn(
+      `[fpf-compat] no routeMap entry for mfeId "${mfeId}"; registering "${appId}" as a no-op.`,
+    );
+    return { appId, slots: [] };
+  }
+
   const legacyConfig = resolveEnvConfig(envConfig);
   let cachedApps: App[] | undefined;
   let cachedOps: SlotOperation[] = [];
@@ -36,6 +47,7 @@ export function createLegacyPluginApp({
           slotMap,
           widgetMap,
           apps: apps?.filter((a) => a.appId !== appId) ?? [],
+          routeRoles,
         });
       }
       return cachedOps;

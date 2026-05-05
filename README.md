@@ -8,7 +8,7 @@ The package does three coupled jobs from one install:
 
 - **FPF drop-in.** It re-exports the public surface of `@openedx/frontend-plugin-framework` (`Plugin`, `PluginSlot`, `DIRECT_PLUGIN`, `IFRAME_PLUGIN`, `PLUGIN_OPERATIONS`) so the package can stand in for FPF via a second dependency alias.
 
-- **FPF translation.** It exports `createLegacyPluginApp({ envConfig, appId, slotMap?, widgetMap? })`, which invokes a legacy `setConfig` function, translates its `pluginSlots` into a frontend-base `SlotOperation[]`, and returns an `App` whose `slots` carry the result.
+- **FPF translation.** It exports `createLegacyPluginApp({ appId, envConfig, mfeId?, routeMap?, slotMap?, widgetMap? })`, which invokes a legacy `setConfig` function, translates its `pluginSlots` into a frontend-base `SlotOperation[]`, and returns an `App` whose `slots` carry the result. Pass `mfeId` to scope the translated ops to a single legacy MFE's routes.
 
 See [ADR 0001](docs/decisions/0001-frontend-base-compatibility.rst) for the design and trade-offs.
 
@@ -98,6 +98,25 @@ createLegacyPluginApp({
   widgetMap: { ...defaultWidgetMap, ...compatWidgetMap },
 });
 ```
+
+### Scoping a legacy `env.config.jsx` to an MFE's routes
+
+A frontend-base site that hosts more than one legacy MFE in the same shell needs each MFE's plugin ops to fire only on that MFE's routes. Without scoping, a `Hide` for one MFE's chrome would leak into another's, since translated ops apply globally by default. Pass `mfeId` to opt every op for that app into `condition: { active: [...] }`, scoped to the route roles registered by the corresponding frontend-base port:
+
+```tsx
+import { createLegacyPluginApp } from '@openedx/frontend-base-compat';
+import envConfig from './src/env.config.dashboard.jsx';
+
+createLegacyPluginApp({
+  appId: 'org.openedx.frontend.app.compat.learnerDashboard',
+  envConfig,
+  mfeId: 'learner-dashboard',
+});
+```
+
+The shim ships `defaultRouteMap`, a curated `mfeId -> routeRoles[]` table covering the legacy MFEs whose frontend-base ports already exist (`learner-dashboard`, `authn`, ...). Override or extend it via the `routeMap` argument the same way as `slotMap`/`widgetMap`.
+
+If `mfeId` is set but neither the supplied `routeMap` nor `defaultRouteMap` has an entry for it, the shim warns once and registers the app as a no-op.
 
 ### Supported FPF translations
 
