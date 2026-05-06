@@ -19,6 +19,7 @@ export const SITE_CONFIG_TRANSLATION_MAP: Record<string, string> = {
   LOGIN_URL: 'loginUrl',
   LOGOUT_URL: 'logoutUrl',
   /* OptionalSiteConfig */
+  STUDIO_BASE_URL: 'cmsBaseUrl',
   LOGO_URL: 'headerLogoImageUrl',
   ACCESS_TOKEN_COOKIE_NAME: 'accessTokenCookieName',
   LANGUAGE_PREFERENCE_COOKIE_NAME: 'languagePreferenceCookieName',
