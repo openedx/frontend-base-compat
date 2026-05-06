@@ -56,7 +56,7 @@ import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
 
 The i18n and auth subpaths re-export frontend-base's existing implementations directly. `getConfig()` returns a Proxy that resolves UPPER_SNAKE_CASE keys against:
 
-1. A curated translation table mirroring edx-platform's `SITE_CONFIG_TRANSLATION_MAP` (`SITE_NAME`, `BASE_URL`, `LMS_BASE_URL`, `LOGIN_URL`, `LOGOUT_URL`, `LOGO_URL → headerLogoImageUrl`, `ACCESS_TOKEN_COOKIE_NAME`, `LANGUAGE_PREFERENCE_COOKIE_NAME`, `USER_INFO_COOKIE_NAME`, `CSRF_TOKEN_API_PATH`, `REFRESH_ACCESS_TOKEN_API_PATH`, `SEGMENT_KEY`), reading the corresponding camelCase field from `getSiteConfig()`.
+1. A curated translation table mirroring edx-platform's [`SITE_CONFIG_TRANSLATION_MAP`](https://github.com/openedx/edx-platform/blob/master/lms/djangoapps/mfe_config_api/views.py#L25), reading the corresponding camelCase field from `getSiteConfig()`.
 2. `getSiteConfig().commonAppConfig` for everything else, which is where edx-platform's compatibility layer puts non-translated `MFE_CONFIG` values (`INDIGO_*`, plugin-specific keys, etc.).
 
 Unknown keys return `undefined`. The Proxy re-reads `getSiteConfig()` on every access, so it stays current under `mergeSiteConfig` updates.
