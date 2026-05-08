@@ -20,6 +20,16 @@ The compat package only covers the runtime import surface of `@edx/frontend-plat
 
 The shim does not shim DOM or CSS. Brand and plugin stylesheets written against legacy MFE markup no longer match what frontend-base renders, and operators are expected to rewrite the affected selectors or move the styling into brand theming. See [ADR 0001](docs/decisions/0001-frontend-base-compatibility.rst) for why a CSS shim is out of scope.
 
+One specific gotcha worth calling out: frontend-base renamed the theme-variant attribute and storage key. Brand stylesheets and any plugin CSS that keys off the legacy names will not match what frontend-base puts on the DOM. The mapping is:
+
+| Legacy (`frontend-platform`)        | Current (`frontend-base`)    | Where it appears                                         |
+| ----------------------------------- | ---------------------------- | -------------------------------------------------------- |
+| `data-paragon-theme-variant`        | `data-theme-variant`         | `<html>` element and `<link>` theme stylesheets          |
+| `data-brand-theme-variant`          | (no equivalent)              | brand-override `<link>` elements; frontend-base collapses brand into the variant `<link>` itself |
+| `selected-paragon-theme-variant`    | `selected-theme-variant`     | `localStorage` key for the active variant                |
+
+Brand authors should rename the corresponding selectors and storage reads at the source. The shim deliberately does not bridge these at runtime: a DOM mirror would have to fight React's own effects, and brand authors are already touching CSS during the frontend-base migration for unrelated markup changes.
+
 ### Build tooling (`@openedx/frontend-build` / `fedx-scripts`)
 
 The compat package does not provide any shims for `@openedx/frontend-build`. Plugin packages that ship `preinstall` hooks invoking `fedx-scripts` will fail to install in a frontend-base site, because the consumer tree does not have those build tools or the plugin's devDependencies.
