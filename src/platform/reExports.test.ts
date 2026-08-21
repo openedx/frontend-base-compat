@@ -1,7 +1,8 @@
 /* Smoke test: the symbols re-exported from `./i18n`, `./auth`, and the
  * platform-aggregate `./` are the same object identities frontend-base
  * exports.  Catches accidental wrappers that would silently desync from
- * the underlying implementation. */
+ * the underlying implementation.  `injectIntl` is deliberately absent: it has
+ * no frontend-base counterpart and is shimmed locally (see injectIntl.test.tsx). */
 import * as base from '@openedx/frontend-base';
 
 import * as platformAuth from './auth';
@@ -13,7 +14,6 @@ describe('platform re-exports', () => {
     expect(platformI18n.useIntl).toBe(base.useIntl);
     expect(platformI18n.defineMessages).toBe(base.defineMessages);
     expect(platformI18n.IntlProvider).toBe(base.IntlProvider);
-    expect(platformI18n.injectIntl).toBe(base.injectIntl);
     expect(platformI18n.FormattedMessage).toBe(base.FormattedMessage);
     expect(platformI18n.configureI18n).toBe(base.configureI18n);
   });
