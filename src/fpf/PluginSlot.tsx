@@ -6,19 +6,19 @@ import { resolveTargetSlot } from '../mappings/resolve';
 import { SlotMap } from '../types';
 
 interface LegacySlotOptions {
-  mergeProps?: boolean,
+  mergeProps?: boolean;
 }
 
 export interface PluginSlotProps {
-  as?: ComponentType<any> | string,
-  children?: ReactNode,
-  id: string,
-  idAliases?: string[],
-  pluginProps?: Record<string, unknown>,
-  slotOptions?: LegacySlotOptions,
-  slotErrorFallbackComponent?: ReactNode,
+  as?: ComponentType<any> | string;
+  children?: ReactNode;
+  id: string;
+  idAliases?: string[];
+  pluginProps?: Record<string, unknown>;
+  slotOptions?: LegacySlotOptions;
+  slotErrorFallbackComponent?: ReactNode;
   /* Test-only override; production uses `defaultSlotMap`. */
-  slotMap?: SlotMap,
+  slotMap?: SlotMap;
 }
 
 /* FPF drop-in. Forwards `pluginProps` nested (not spread) so `Wrap` layouts can read it. */

@@ -53,7 +53,7 @@ export const intlShape = PropTypes.object;
 export type IntlShape = ReturnType<typeof useIntl>;
 
 export interface WrappedComponentProps {
-  intl: IntlShape,
+  intl: IntlShape;
 }
 
 /* Statics React (or the function object) owns; everything else on the wrapped

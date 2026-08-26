@@ -53,7 +53,7 @@ function fakeHeaderApp(): App {
   };
 }
 
-function envConfig(plugins: LegacyPluginEntry[], opts: { keepDefault?: boolean, slotId?: string, slotOptions?: Record<string, unknown> } = {}): LegacyEnvConfig {
+function envConfig(plugins: LegacyPluginEntry[], opts: { keepDefault?: boolean; slotId?: string; slotOptions?: Record<string, unknown> } = {}): LegacyEnvConfig {
   return {
     pluginSlots: {
       [opts.slotId ?? HEADER_DESKTOP_LEGACY]: {
@@ -549,8 +549,8 @@ describe('translate', () => {
       component,
       pluginProps,
     }: {
-      component: any,
-      pluginProps?: Record<string, unknown>,
+      component: any;
+      pluginProps?: Record<string, unknown>;
     }) => (
       <div data-testid="wrapper" data-tag={String(pluginProps?.tag ?? '')}>
         {component}

@@ -22,11 +22,11 @@ import {
 import { createWrapLayout } from './wrap';
 
 interface TranslateArgs {
-  envConfig: LegacyEnvConfig,
-  slotMap: SlotMap,
-  widgetMap: WidgetMap,
-  apps: App[],
-  routeRoles?: string[],
+  envConfig: LegacyEnvConfig;
+  slotMap: SlotMap;
+  widgetMap: WidgetMap;
+  apps: App[];
+  routeRoles?: string[];
 }
 
 const defaultContentId = 'defaultContent';
@@ -142,7 +142,7 @@ function emitInsert(
   }
 
   /* Cast lets us read `id`/`type` after the union has been exhausted above. */
-  const unknown = widget as { id?: string, type?: string };
+  const unknown = widget as { id?: string; type?: string };
   warnOnce(
     `unknown-widget-type:${unknown.id}`,
     `[fpf-compat] unknown widget type "${unknown.type}" for "${unknown.id}"; skipping.`,
@@ -151,8 +151,8 @@ function emitInsert(
 }
 
 interface InsertAnchor {
-  op: WidgetOperationTypes.INSERT_BEFORE | WidgetOperationTypes.INSERT_AFTER,
-  relatedId: string,
+  op: WidgetOperationTypes.INSERT_BEFORE | WidgetOperationTypes.INSERT_AFTER;
+  relatedId: string;
 }
 
 function resolveInsertAnchor(mapping: SlotMappingEntry): InsertAnchor | null {
@@ -166,7 +166,7 @@ function resolveInsertAnchor(mapping: SlotMappingEntry): InsertAnchor | null {
 }
 
 function withAnchor(
-  base: { slotId: string, id: string, element?: ReactElement, component?: ComponentType },
+  base: { slotId: string; id: string; element?: ReactElement; component?: ComponentType },
   anchor: InsertAnchor | null,
 ): SlotOperation {
   if (anchor) {
@@ -312,9 +312,9 @@ function emitWrap(
   apps: App[],
 ): SlotOperation[] {
   const wrapper = entry.wrapper as ComponentType<{
-    component: ReactElement,
-    idx?: number,
-    count?: number,
+    component: ReactElement;
+    idx?: number;
+    count?: number;
   }> | undefined;
   if (typeof wrapper !== 'function') {
     warnOnce(

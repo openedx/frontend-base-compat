@@ -7,42 +7,42 @@ export type LegacyOperation = 'insert' | 'hide' | 'modify' | 'wrap';
 export type LegacyPluginType = 'DIRECT_PLUGIN' | 'IFRAME_PLUGIN';
 
 export interface LegacyDirectWidget {
-  id: string,
-  type: 'DIRECT_PLUGIN',
-  priority?: number,
-  RenderWidget: ComponentType<any> | ReactElement,
+  id: string;
+  type: 'DIRECT_PLUGIN';
+  priority?: number;
+  RenderWidget: ComponentType<any> | ReactElement;
 }
 
 export interface LegacyIframeWidget {
-  id: string,
-  type: 'IFRAME_PLUGIN',
-  priority?: number,
-  url: string,
-  title: string,
+  id: string;
+  type: 'IFRAME_PLUGIN';
+  priority?: number;
+  url: string;
+  title: string;
 }
 
 export type LegacyWidget = LegacyDirectWidget | LegacyIframeWidget;
 
 export interface LegacyInsertEntry {
-  op: 'insert',
-  widget: LegacyWidget,
+  op: 'insert';
+  widget: LegacyWidget;
 }
 
 export interface LegacyHideEntry {
-  op: 'hide',
-  widgetId: string,
+  op: 'hide';
+  widgetId: string;
 }
 
 export interface LegacyModifyEntry {
-  op: 'modify',
-  widgetId: string,
-  fn: (...args: unknown[]) => unknown,
+  op: 'modify';
+  widgetId: string;
+  fn: (...args: unknown[]) => unknown;
 }
 
 export interface LegacyWrapEntry {
-  op: 'wrap',
-  widgetId: string,
-  wrapper: ComponentType<{ component: ReactElement, idx?: number, count?: number }>,
+  op: 'wrap';
+  widgetId: string;
+  wrapper: ComponentType<{ component: ReactElement; idx?: number; count?: number }>;
 }
 
 export type LegacyPluginEntry =
@@ -52,19 +52,19 @@ export type LegacyPluginEntry =
   | LegacyWrapEntry;
 
 export interface LegacySlotOptions {
-  mergeProps?: boolean,
-  [key: string]: unknown,
+  mergeProps?: boolean;
+  [key: string]: unknown;
 }
 
 export interface LegacyPluginSlotConfig {
-  keepDefault?: boolean,
-  plugins: LegacyPluginEntry[],
-  slotOptions?: LegacySlotOptions,
+  keepDefault?: boolean;
+  plugins: LegacyPluginEntry[];
+  slotOptions?: LegacySlotOptions;
 }
 
 export interface LegacyEnvConfig {
-  pluginSlots?: Record<string, LegacyPluginSlotConfig>,
-  [key: string]: unknown,
+  pluginSlots?: Record<string, LegacyPluginSlotConfig>;
+  [key: string]: unknown;
 }
 
 export type LegacySetConfig = () => LegacyEnvConfig;
@@ -82,9 +82,9 @@ export type RouteMap = Record<string, string[]>;
 
 export interface SlotMappingEntry {
   /* Legacy `idAliases` accepted by the old slot. */
-  sourceAliases?: string[],
+  sourceAliases?: string[];
   /* Default landing slot for `Insert`; per-widget routing overrides via `widgetMap`. */
-  targetSlotId: string,
+  targetSlotId: string;
   /*
    * Optional positional anchor for `Insert`. When set, emit an
    * INSERT_BEFORE / INSERT_AFTER op against the named widget id in
@@ -93,8 +93,8 @@ export interface SlotMappingEntry {
    * `widgetMap` routes the widget to a different slot. If both are
    * set, `insertBefore` wins.
    */
-  insertBefore?: string,
-  insertAfter?: string,
+  insertBefore?: string;
+  insertAfter?: string;
   /*
    * Used by `Hide default_contents` / `keepDefault: false`. Additive layers:
    *   - `slotIds`: REMOVE synthetic `defaultContent` on each (covers JSX-children defaults).
@@ -103,30 +103,30 @@ export interface SlotMappingEntry {
    * Omit the field to fall back to a synthetic REMOVE on `targetSlotId`.
    */
   targetDefaultContent?: {
-    slotIds?: string[],
-    fromAppIds?: string[],
-    widgetMap?: WidgetMap,
-  },
+    slotIds?: string[];
+    fromAppIds?: string[];
+    widgetMap?: WidgetMap;
+  };
 }
 
 export type SlotMap = Record<string, SlotMappingEntry>;
 
 export interface LegacyPluginAppArgs {
-  appId: string,
-  envConfig: LegacyEnvConfigInput,
-  mfeId?: string,
-  routeMap?: RouteMap,
-  slotMap?: SlotMap,
-  widgetMap?: WidgetMap,
+  appId: string;
+  envConfig: LegacyEnvConfigInput;
+  mfeId?: string;
+  routeMap?: RouteMap;
+  slotMap?: SlotMap;
+  widgetMap?: WidgetMap;
 }
 
 /* Decoupled from the lazy `slots` getter so `translate()` is pure-function-testable. */
 export interface TranslateInput {
-  envConfig: LegacyEnvConfig,
-  slotMap: SlotMap,
-  widgetMap: WidgetMap,
-  apps: App[],
-  routeRoles?: string[],
+  envConfig: LegacyEnvConfig;
+  slotMap: SlotMap;
+  widgetMap: WidgetMap;
+  apps: App[];
+  routeRoles?: string[];
 }
 
 export type TranslateOutput = SlotOperation[];

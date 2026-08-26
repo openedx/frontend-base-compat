@@ -33,7 +33,7 @@ export const SITE_CONFIG_TRANSLATION_MAP: Record<string, string> = {
  * type-checks against `any`-valued properties. */
 type LegacyConfig = Record<string, any>;
 
-function lookup(prop: string): { found: boolean, value: unknown } {
+function lookup(prop: string): { found: boolean; value: unknown } {
   const site = getSiteConfig();
   if (Object.prototype.hasOwnProperty.call(SITE_CONFIG_TRANSLATION_MAP, prop)) {
     const camel = SITE_CONFIG_TRANSLATION_MAP[prop];

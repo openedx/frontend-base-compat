@@ -2,9 +2,9 @@ import { ComponentType, ReactElement, isValidElement } from 'react';
 import { useSlotContext, useWidgets } from '@openedx/frontend-base';
 
 interface WrapLayoutArgs {
-  wrapper: ComponentType<{ component: ReactElement, pluginProps?: Record<string, unknown> }>,
+  wrapper: ComponentType<{ component: ReactElement; pluginProps?: Record<string, unknown> }>;
   /* Wraps only this id; if absent, wraps every widget. */
-  widgetId?: string,
+  widgetId?: string;
 }
 
 /* Layout that decorates one (or all) widgets via an FPF-shaped wrapper. Best effort per ADR 0001. */
