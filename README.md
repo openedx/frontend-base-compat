@@ -143,6 +143,18 @@ If `mfeId` is set but neither the supplied `routeMap` nor `defaultRouteMap` has 
 
 This package is a migration aid and is expected to be removed when the MFE deprecation timeline closes.
 
+## Releases
+
+This package is published to npm by `semantic-release`, and its branches follow [OEP-10 ADR 0002: Frontend Stable Branches](https://docs.openedx.org/projects/openedx-proposals/en/latest/processes/oep-0010/decisions/0002-frontend-stable-branches.html):
+
+- **`main`** is unstable.  Every merge publishes a prerelease on the `alpha` dist-tag.  Breaking changes land here with no DEPR process and no warning, so it is not supported in production.  All changes, including bug fixes, should target this branch first.
+- **`stable`** carries the newest stable major and owns the `latest` dist-tag.  Changes arrive here as backports from `main`, and no breaking change lands after publication.
+- **`n.x`** and **`n.m.x`** are maintenance branches for majors and minors that `stable` has moved past.  Each owns the dist-tag matching its own name, so consumers select a maintained line by semver range, for example `"1.x"`.
+
+Both `.releaserc` and the `Release CI` workflow already know the whole layout, including the maintenance branch patterns, so a new line starts publishing as soon as it is pushed.
+
+This repository is not branched or tagged for Open edX releases in its own right.  It participates by published version instead, per [OEP-10 ADR 0003: Frontend Release Strategy](https://docs.openedx.org/projects/openedx-proposals/en/latest/processes/oep-0010/decisions/0003-frontend-release-strategy.html).
+
 ## License
 
 [AGPL-3.0](LICENSE)
