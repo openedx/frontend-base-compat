@@ -12,6 +12,11 @@ export const defaultRouteMap: RouteMap = {
     'org.openedx.frontend.role.confirmPassword',
     'org.openedx.frontend.role.welcome',
   ],
+  catalog: [
+    'org.openedx.frontend.role.catalog',
+    'org.openedx.frontend.role.courses',
+    'org.openedx.frontend.role.courseAbout',
+  ],
   'learner-dashboard': [
     'org.openedx.frontend.role.dashboard',
   ],

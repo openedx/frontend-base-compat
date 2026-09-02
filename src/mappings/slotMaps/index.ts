@@ -1,11 +1,13 @@
 import { SlotMap } from '../../types';
 
 import { authnSlotMap } from './authn';
+import { catalogSlotMap } from './catalog';
 import { footerSlotMap } from './footer';
 import { headerSlotMap } from './header';
 import { learnerDashboardSlotMap } from './learnerDashboard';
 
 export { authnSlotMap } from './authn';
+export { catalogSlotMap } from './catalog';
 export { footerSlotMap } from './footer';
 export { headerSlotMap } from './header';
 export { learnerDashboardSlotMap } from './learnerDashboard';
@@ -16,4 +18,5 @@ export const slotMaps: SlotMap[] = [
   footerSlotMap,
   authnSlotMap,
   learnerDashboardSlotMap,
+  catalogSlotMap,
 ];
