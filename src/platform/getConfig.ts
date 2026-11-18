@@ -1,4 +1,4 @@
-import { getSiteConfig } from '@openedx/frontend-base';
+import { getSiteConfig, SiteConfig } from '@openedx/frontend-base';
 
 /**
  * Mirrors edx-platform's `SITE_CONFIG_TRANSLATION_MAP`
@@ -29,6 +29,22 @@ export const SITE_CONFIG_TRANSLATION_MAP: Record<string, string> = {
   SEGMENT_KEY: 'segmentKey',
 };
 
+/**
+ * Legacy keys with no 1:1 `SiteConfig` field, computed from the ones it has.
+ *
+ * `REFRESH_ACCESS_TOKEN_ENDPOINT` was a full URL; frontend-base only keeps
+ * the path, relative to the LMS.
+ */
+const DERIVED_CONFIG: Record<string, (site: SiteConfig) => unknown> = {
+  REFRESH_ACCESS_TOKEN_ENDPOINT: (site) => {
+    const { lmsBaseUrl, refreshAccessTokenApiPath: path } = site;
+    if (typeof lmsBaseUrl !== 'string' || typeof path !== 'string') {
+      return undefined;
+    }
+    return `${lmsBaseUrl.replace(/\/+$/, '')}${path}`;
+  },
+};
+
 /* Public-API shape: legacy callers do `getConfig().LMS_BASE_URL`, which only
  * type-checks against `any`-valued properties. */
 type LegacyConfig = Record<string, any>;
@@ -43,6 +59,11 @@ function lookup(prop: string): { found: boolean; value: unknown } {
   const bag = site.commonAppConfig;
   if (bag && Object.prototype.hasOwnProperty.call(bag, prop)) {
     return { found: true, value: bag[prop] };
+  }
+  /* Last, so a value the operator set explicitly wins over the computed one. */
+  if (Object.prototype.hasOwnProperty.call(DERIVED_CONFIG, prop)) {
+    const value = DERIVED_CONFIG[prop](site);
+    return { found: value !== undefined, value };
   }
   return { found: false, value: undefined };
 }
@@ -68,6 +89,11 @@ const handler: ProxyHandler<LegacyConfig> = {
     for (const upper of Object.keys(SITE_CONFIG_TRANSLATION_MAP)) {
       const camel = SITE_CONFIG_TRANSLATION_MAP[upper];
       if (Reflect.get(site, camel) !== undefined) {
+        keys.add(upper);
+      }
+    }
+    for (const upper of Object.keys(DERIVED_CONFIG)) {
+      if (lookup(upper).found) {
         keys.add(upper);
       }
     }

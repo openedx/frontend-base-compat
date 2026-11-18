@@ -394,7 +394,196 @@ describe('translate', () => {
       .filter((o) => o.op === WidgetOperationTypes.REMOVE)
       .map((o) => (o as any).relatedId)
       .sort();
-    expect(removedIds).toEqual(['org.openedx.frontend.widget.header.desktopLogo.v1']);
+    expect(removedIds).toEqual([
+      'org.openedx.frontend.widget.header.desktopLogo.v1',
+      'org.openedx.frontend.widget.header.mobileLogo.v1',
+    ]);
+  });
+
+  it('logo_slot Insert lands in both the desktop and the mobile logo slots', () => {
+    const ops = translate({
+      envConfig: {
+        pluginSlots: {
+          logo_slot: {
+            plugins: [{
+              op: 'insert',
+              widget: { id: 'acme.logo', type: 'DIRECT_PLUGIN', RenderWidget: SimpleWidget },
+            }],
+          },
+        },
+      },
+      slotMap: defaultSlotMap,
+      widgetMap: {},
+      apps: [],
+    });
+    expect(ops).toEqual([
+      {
+        slotId: DESKTOP_LEFT,
+        id: 'acme.logo',
+        op: WidgetOperationTypes.INSERT_BEFORE,
+        relatedId: 'org.openedx.frontend.widget.header.desktopPrimaryLinks.v1',
+        component: SimpleWidget,
+      },
+      {
+        slotId: 'org.openedx.frontend.slot.header.mobileCenter.v1',
+        id: 'acme.logo',
+        op: WidgetOperationTypes.APPEND,
+        component: SimpleWidget,
+      },
+    ]);
+  });
+
+  it('emits a widget once when legacy slots sharing a target each insert it', () => {
+    const insert: LegacyPluginEntry = {
+      op: 'insert',
+      widget: { id: 'acme.link', type: 'DIRECT_PLUGIN', RenderWidget: SimpleWidget },
+    };
+    const ops = translate({
+      envConfig: {
+        pluginSlots: {
+          desktop_user_menu_slot: { plugins: [insert] },
+          mobile_user_menu_slot: { plugins: [insert] },
+        },
+      },
+      slotMap: defaultSlotMap,
+      widgetMap: {},
+      apps: [],
+    });
+    expect(ops).toEqual([{
+      slotId: 'org.openedx.frontend.slot.header.authenticatedMenu.v1',
+      id: 'acme.link',
+      op: WidgetOperationTypes.APPEND,
+      component: SimpleWidget,
+    }]);
+  });
+
+  it('Hide and Wrap of a widget the same slot inserted reach every copy of it', () => {
+    const mobileCenter = 'org.openedx.frontend.slot.header.mobileCenter.v1';
+    const ops = translate({
+      envConfig: {
+        pluginSlots: {
+          logo_slot: {
+            plugins: [
+              { op: 'insert', widget: { id: 'acme.logo', type: 'DIRECT_PLUGIN', RenderWidget: SimpleWidget } },
+              { op: 'hide', widgetId: 'acme.logo' },
+              { op: 'wrap', widgetId: 'acme.logo', wrapper: Wrapper },
+            ],
+          },
+        },
+      },
+      slotMap: defaultSlotMap,
+      widgetMap: {},
+      apps: [],
+    });
+    const removes = ops.filter((o) => o.op === WidgetOperationTypes.REMOVE);
+    expect(removes.map((o) => o.slotId)).toEqual([DESKTOP_LEFT, mobileCenter]);
+    const wraps = ops.filter((o) => o.op === LayoutOperationTypes.REPLACE);
+    expect(wraps.map((o) => o.slotId)).toEqual([DESKTOP_LEFT, mobileCenter]);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('Wrap default_contents on desktop_main_menu_slot wraps the app-provided links', () => {
+    const ops = translate({
+      envConfig: {
+        pluginSlots: {
+          desktop_main_menu_slot: { plugins: [{ op: 'wrap', widgetId: 'default_contents', wrapper: Wrapper }] },
+        },
+      },
+      slotMap: defaultSlotMap,
+      widgetMap: {},
+      apps: [],
+    });
+    expect(ops).toHaveLength(1);
+    const op = ops[0] as any;
+    expect(op.slotId).toBe('org.openedx.frontend.slot.header.primaryLinks.v1');
+    expect(op.op).toBe(LayoutOperationTypes.REPLACE);
+    expect(op.component.displayName).toBe('FpfWrapLayout(default_contents)');
+  });
+
+  it('skips extraTargetSlotIds when widgetMap routes the Insert elsewhere', () => {
+    const ops = translate({
+      envConfig: envConfig([{
+        op: 'insert',
+        widget: { id: 'acme.logo', type: 'DIRECT_PLUGIN', RenderWidget: SimpleWidget },
+      }], { slotId: HEADER_LOGO_LEGACY }),
+      slotMap: defaultSlotMap,
+      widgetMap: { 'acme.logo': DESKTOP_RIGHT },
+      apps: [],
+    });
+    expect(ops).toHaveLength(1);
+    expect(ops[0].slotId).toBe(DESKTOP_RIGHT);
+  });
+
+  it('desktop_main_menu_slot Hide default_contents removes the primary links of every app', () => {
+    const primaryLinks = 'org.openedx.frontend.slot.header.primaryLinks.v1';
+    const linkApp = (appId: string, id: string): App => ({
+      appId,
+      slots: [{ slotId: primaryLinks, id, op: WidgetOperationTypes.APPEND, element: null }] as App['slots'],
+    });
+    const ops = translate({
+      envConfig: {
+        pluginSlots: {
+          desktop_main_menu_slot: { plugins: [{ op: 'hide', widgetId: 'default_contents' }] },
+        },
+      },
+      slotMap: defaultSlotMap,
+      widgetMap: {},
+      apps: [fakeHeaderApp(), linkApp('acme.app.one', 'acme.link.one'), linkApp('acme.app.two', 'acme.link.two')],
+    });
+    expect(ops.every((o) => o.op === WidgetOperationTypes.REMOVE && o.slotId === primaryLinks)).toBe(true);
+    expect(ops.map((o) => (o as any).relatedId).sort()).toEqual([
+      'acme.link.one',
+      'acme.link.two',
+      'defaultContent',
+    ]);
+  });
+
+  it.each([
+    ['mobile_main_menu_slot', 'org.openedx.frontend.slot.header.mobileMenuLinks.v1'],
+    ['mobile_user_menu_slot', 'org.openedx.frontend.slot.header.authenticatedMenu.v1'],
+    ['desktop_logged_out_items_slot', 'org.openedx.frontend.slot.header.anonymousMenu.v1'],
+    ['mobile_logged_out_items_slot', 'org.openedx.frontend.slot.header.anonymousMenu.v1'],
+    ['learning_logged_out_items_slot', 'org.openedx.frontend.slot.header.anonymousMenu.v1'],
+    ['desktop_secondary_menu_slot', DESKTOP_RIGHT],
+    ['org.openedx.frontend.layout.header_desktop_secondary_menu.v1', DESKTOP_RIGHT],
+    ['org.openedx.frontend.layout.header_desktop_secondary_menu.v2', DESKTOP_RIGHT],
+    ['org.openedx.frontend.layout.learning_header_actions.v2', DESKTOP_RIGHT],
+    ['org.openedx.frontend.layout.studio_footer_help_section.v1', 'org.openedx.frontend.slot.footer.desktopTop.v1'],
+    ['org.openedx.frontend.layout.studio_footer_help-content.v1', 'org.openedx.frontend.slot.footer.desktopTop.v1'],
+  ])('routes %s Inserts to %s', (legacyId, targetSlotId) => {
+    const ops = translate({
+      envConfig: envConfig([{
+        op: 'insert',
+        widget: { id: 'acme.widget', type: 'DIRECT_PLUGIN', RenderWidget: SimpleWidget },
+      }], { slotId: legacyId }),
+      slotMap: defaultSlotMap,
+      widgetMap: {},
+      apps: [],
+    });
+    expect(ops).toHaveLength(1);
+    expect(ops[0].slotId).toBe(targetSlotId);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'org.openedx.frontend.layout.header_desktop_user_menu_toggle.v1',
+    'org.openedx.frontend.layout.header_mobile_user_menu_trigger.v1',
+    'org.openedx.frontend.layout.header_learning_user_menu_toggle.v1',
+    'course_info_slot',
+    'studio_footer_logo_slot',
+    'org.openedx.frontend.layout.studio_footer_help_button.v1',
+  ])('skips %s with a warning, as the shell has no equivalent', (legacyId) => {
+    const ops = translate({
+      envConfig: envConfig([{
+        op: 'insert',
+        widget: { id: 'acme.widget', type: 'DIRECT_PLUGIN', RenderWidget: SimpleWidget },
+      }], { slotId: legacyId }),
+      slotMap: defaultSlotMap,
+      widgetMap: {},
+      apps: [],
+    });
+    expect(ops).toEqual([]);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining(`no mapping for legacy slot id "${legacyId}"`));
   });
 
   it('uses the curated widgetMap to remove the help button widget for learning_help_slot Hide default_contents', () => {
