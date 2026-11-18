@@ -18,7 +18,15 @@ const allFooterSlotIds = [
   footerLegalSlotId,
 ];
 
-/* frontend-component-footer plugin-slots -> frontend-base/shell/footer sub-slots. */
+/*
+ * frontend-component-footer plugin-slots -> frontend-base/shell/footer sub-slots.
+ *
+ * Deliberately unmapped, because the shell has no equivalent (ops on them are
+ * skipped with a warning):
+ *   - `studio_footer_logo.v1`: "Powered by Open edX" is a fixed component, not a slot.
+ *   - `studio_footer_help_button.v1`: the `desktopTop` toggle is part of its
+ *     layout, and only its label can be changed.
+ */
 export const footerSlotMap: SlotMap = {
   'org.openedx.frontend.layout.footer.v1': {
     sourceAliases: ['footer_slot', 'footer_plugin_slot'],
@@ -38,17 +46,11 @@ export const footerSlotMap: SlotMap = {
       fromAppIds: [footerAppId],
     },
   },
-  'org.openedx.frontend.layout.studio_footer_logo.v1': {
-    sourceAliases: ['studio_footer_logo_slot'],
-    targetSlotId: footerLeftSlotId,
-  },
-  'org.openedx.frontend.layout.studio_footer_help_button.v1': {
-    targetSlotId: footerCenterSlotId,
-  },
+  /* The shell's take on the Studio help section is the collapsible `desktopTop` row. */
   'org.openedx.frontend.layout.studio_footer_help_section.v1': {
-    targetSlotId: footerCenterSlotId,
+    targetSlotId: footerTopSlotId,
   },
   'org.openedx.frontend.layout.studio_footer_help-content.v1': {
-    targetSlotId: footerCenterSlotId,
+    targetSlotId: footerTopSlotId,
   },
 };

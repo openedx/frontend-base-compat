@@ -86,6 +86,12 @@ export interface SlotMappingEntry {
   /* Default landing slot for `Insert`; per-widget routing overrides via `widgetMap`. */
   targetSlotId: string;
   /*
+   * Further slots every `Insert` is also APPENDed to, for legacy slots the
+   * shell renders in more than one place (e.g. separate desktop and mobile
+   * widgets). Ignored when `widgetMap` routes the widget elsewhere.
+   */
+  extraTargetSlotIds?: string[];
+  /*
    * Optional positional anchor for `Insert`. When set, emit an
    * INSERT_BEFORE / INSERT_AFTER op against the named widget id in
    * `targetSlotId` instead of APPEND. Compensates for FPF having no
@@ -99,12 +105,13 @@ export interface SlotMappingEntry {
    * Used by `Hide default_contents` / `keepDefault: false`. Additive layers:
    *   - `slotIds`: REMOVE synthetic `defaultContent` on each (covers JSX-children defaults).
    *   - `fromAppIds`: REMOVE every APPEND/PREPEND in those apps whose slotId is in `slotIds`.
+   *     `'*'` scans every app, for slots whose defaults are contributed by arbitrary apps.
    *   - `widgetMap`: curated `widgetId -> slotId` for widgets the dynamic scan can't see.
    * Omit the field to fall back to a synthetic REMOVE on `targetSlotId`.
    */
   targetDefaultContent?: {
     slotIds?: string[];
-    fromAppIds?: string[];
+    fromAppIds?: string[] | '*';
     widgetMap?: WidgetMap;
   };
 }

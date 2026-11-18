@@ -30,6 +30,38 @@ describe('getConfig adapter', () => {
     expect(getConfig().LOGO_URL).toBe('https://cdn.example.com/logo.png');
   });
 
+  it('derives REFRESH_ACCESS_TOKEN_ENDPOINT from the LMS URL and the refresh path', () => {
+    setSiteConfig({ ...SITE_BASE, refreshAccessTokenApiPath: '/login_refresh', apps: [] } as any);
+    const config = getConfig();
+    expect(config.REFRESH_ACCESS_TOKEN_ENDPOINT).toBe('http://localhost:8000/login_refresh');
+    expect('REFRESH_ACCESS_TOKEN_ENDPOINT' in config).toBe(true);
+    expect(Object.keys(config)).toContain('REFRESH_ACCESS_TOKEN_ENDPOINT');
+  });
+
+  it('tolerates a trailing slash or a missing path when deriving REFRESH_ACCESS_TOKEN_ENDPOINT', () => {
+    setSiteConfig({
+      ...SITE_BASE,
+      lmsBaseUrl: 'http://localhost:8000/',
+      refreshAccessTokenApiPath: '/login_refresh',
+      apps: [],
+    } as any);
+    expect(getConfig().REFRESH_ACCESS_TOKEN_ENDPOINT).toBe('http://localhost:8000/login_refresh');
+
+    setSiteConfig({ ...SITE_BASE, refreshAccessTokenApiPath: null, apps: [] } as any);
+    expect(getConfig().REFRESH_ACCESS_TOKEN_ENDPOINT).toBeUndefined();
+    expect(Object.keys(getConfig())).not.toContain('REFRESH_ACCESS_TOKEN_ENDPOINT');
+  });
+
+  it('prefers an explicit REFRESH_ACCESS_TOKEN_ENDPOINT over the derived one', () => {
+    setSiteConfig({
+      ...SITE_BASE,
+      refreshAccessTokenApiPath: '/login_refresh',
+      commonAppConfig: { REFRESH_ACCESS_TOKEN_ENDPOINT: 'https://auth.example.com/login_refresh' },
+      apps: [],
+    } as any);
+    expect(getConfig().REFRESH_ACCESS_TOKEN_ENDPOINT).toBe('https://auth.example.com/login_refresh');
+  });
+
   it('falls through unmatched keys to commonAppConfig', () => {
     setSiteConfig({
       ...SITE_BASE,

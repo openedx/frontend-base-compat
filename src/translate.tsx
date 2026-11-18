@@ -31,6 +31,9 @@ interface TranslateArgs {
 
 const defaultContentId = 'defaultContent';
 
+/* `widgetId` -> the slots one legacy slot's Insert put it in. */
+type OwnInserts = Map<string, string[]>;
+
 /* Pure translation. The lazy `slots` getter calls this once; tests call it directly. */
 export function translate({
   envConfig,
@@ -62,16 +65,24 @@ export function translate({
       ops.push(...emitHideDefaults(entry, apps));
     }
 
+    /* Where this slot's own Inserts land, so Hide/Wrap can reach every copy of them. */
+    const ownInserts: OwnInserts = new Map();
+    for (const plugin of sorted) {
+      if (plugin.op === 'insert') {
+        ownInserts.set(plugin.widget.id, emitInsert(plugin, entry, widgetMap).map((op) => op.slotId));
+      }
+    }
+
     for (const plugin of sorted) {
       switch (plugin.op) {
         case 'insert':
           ops.push(...emitInsert(plugin, entry, widgetMap));
           break;
         case 'hide':
-          ops.push(...emitHide(plugin, entry, widgetMap, apps));
+          ops.push(...emitHide(plugin, entry, widgetMap, apps, ownInserts));
           break;
         case 'wrap':
-          ops.push(...emitWrap(plugin, entry, widgetMap, apps));
+          ops.push(...emitWrap(plugin, entry, widgetMap, apps, ownInserts));
           break;
         case 'modify':
           warnOnce(
@@ -88,14 +99,37 @@ export function translate({
     }
   }
 
+  const uniqueOps = dropRepeatedInserts(ops);
+
   if (routeRoles && routeRoles.length > 0) {
-    return ops.map((op) => ({
+    return uniqueOps.map((op) => ({
       ...op,
       condition: { ...(op.condition ?? {}), active: routeRoles },
     }));
   }
 
-  return ops;
+  return uniqueOps;
+}
+
+/*
+ * Several legacy slots can share one target (e.g. the desktop and mobile user
+ * menus), and legacy configs often insert the same widget into each. Keep the
+ * first so it doesn't render twice.
+ */
+function dropRepeatedInserts(ops: SlotOperation[]): SlotOperation[] {
+  const seen = new Set<string>();
+  return ops.filter((op) => {
+    const id = (op as { id?: string }).id;
+    if (typeof id !== 'string') {
+      return true;
+    }
+    const key = `${op.slotId}::${id}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }
 
 function priorityOf(entry: LegacyPluginEntry): number {
@@ -114,31 +148,24 @@ function emitInsert(
   const overrideSlotId = widgetMap[widget.id];
   const slotId = overrideSlotId ?? mapping.targetSlotId;
 
-  /* Anchor only applies when the widget lands in the slot the mapping declared. */
+  /* Anchor and extra targets only apply when the widget lands in the slot the mapping declared. */
   const anchor = overrideSlotId ? null : resolveInsertAnchor(mapping);
+  const extraSlotIds = overrideSlotId ? [] : (mapping.extraTargetSlotIds ?? []);
+  const fanOut = (content: { element: ReactElement } | { component: ComponentType }) => [
+    withAnchor({ slotId, id: widget.id, ...content }, anchor),
+    ...extraSlotIds.map((extraSlotId) => withAnchor({ slotId: extraSlotId, id: widget.id, ...content }, null)),
+  ];
 
   if (widget.type === 'IFRAME_PLUGIN') {
-    return [withAnchor({
-      slotId,
-      id: widget.id,
-      element: <IFrameWidget url={widget.url} title={widget.title} />,
-    }, anchor)];
+    return fanOut({ element: <IFrameWidget url={widget.url} title={widget.title} /> });
   }
 
   if (widget.type === 'DIRECT_PLUGIN') {
     const renderer = widget.RenderWidget;
     if (isValidElement(renderer)) {
-      return [withAnchor({
-        slotId,
-        id: widget.id,
-        element: renderer,
-      }, anchor)];
+      return fanOut({ element: renderer });
     }
-    return [withAnchor({
-      slotId,
-      id: widget.id,
-      component: renderer as ComponentType,
-    }, anchor)];
+    return fanOut({ component: renderer as ComponentType });
   }
 
   /* Cast lets us read `id`/`type` after the union has been exhausted above. */
@@ -180,23 +207,25 @@ function emitHide(
   mapping: NonNullable<ReturnType<typeof resolveSlotEntry>>,
   widgetMap: WidgetMap,
   apps: App[],
+  ownInserts: OwnInserts,
 ): SlotOperation[] {
   if (entry.widgetId === 'default_contents') {
     return emitHideDefaults(mapping, apps);
   }
 
-  const owningSlot = locateOwningSlot(entry.widgetId, mapping, widgetMap, apps);
-  if (owningSlot === null) {
+  const owningSlots = locateOwningSlots(entry.widgetId, mapping, widgetMap, apps, ownInserts);
+  if (owningSlots.length === 0) {
     warnOnce(
       `hide-untraced:${entry.widgetId}`,
       `[fpf-compat] PLUGIN_OPERATIONS.Hide for widgetId "${entry.widgetId}" could not locate the owning slot; emitting REMOVE on default target.`,
     );
+    owningSlots.push(mapping.targetSlotId);
   }
-  return [{
-    slotId: owningSlot ?? mapping.targetSlotId,
+  return owningSlots.map((slotId) => ({
+    slotId,
     op: WidgetOperationTypes.REMOVE,
     relatedId: entry.widgetId,
-  }];
+  }));
 }
 
 function emitHideDefaults(
@@ -222,7 +251,7 @@ function emitHideDefaults(
   /* 2. APPEND/PREPEND ops on `slotIds` from `fromAppIds` apps; dynamic so renames propagate. */
   const targetIds = new Set(slotIds);
   for (const app of apps) {
-    if (!fromAppIds.includes(app.appId)) {
+    if (fromAppIds !== '*' && !fromAppIds.includes(app.appId)) {
       continue;
     }
     if (!Array.isArray(app.slots)) {
@@ -262,6 +291,22 @@ function emitHideDefaults(
   }
 
   return out;
+}
+
+/* A widget this legacy slot inserted itself can live in several slots; anything else has one owner. */
+function locateOwningSlots(
+  widgetId: string,
+  mapping: NonNullable<ReturnType<typeof resolveSlotEntry>>,
+  widgetMap: WidgetMap,
+  apps: App[],
+  ownInserts: OwnInserts,
+): string[] {
+  const own = ownInserts.get(widgetId);
+  if (own && own.length > 0) {
+    return [...new Set(own)];
+  }
+  const owningSlot = locateOwningSlot(widgetId, mapping, widgetMap, apps);
+  return owningSlot === null ? [] : [owningSlot];
 }
 
 function locateOwningSlot(
@@ -310,6 +355,7 @@ function emitWrap(
   mapping: NonNullable<ReturnType<typeof resolveSlotEntry>>,
   widgetMap: WidgetMap,
   apps: App[],
+  ownInserts: OwnInserts,
 ): SlotOperation[] {
   const wrapper = entry.wrapper as ComponentType<{
     component: ReactElement;
@@ -328,7 +374,10 @@ function emitWrap(
     const splitSlotIds = mapping.targetDefaultContent?.slotIds ?? [];
     const isSplit = splitSlotIds.length > 1
       || (splitSlotIds.length === 1 && splitSlotIds[0] !== mapping.targetSlotId);
-    if (!isSplit) {
+    /* Defaults registered by apps are real widgets: there's no synthetic defaultContent to wrap. */
+    const fromAppIds = mapping.targetDefaultContent?.fromAppIds ?? [];
+    const isAppProvided = splitSlotIds.length > 0 && (fromAppIds === '*' || fromAppIds.length > 0);
+    if (!isSplit && !isAppProvided) {
       /* Atomized: wrap only the synthetic defaultContent widget so Inserts stay untouched. */
       return [{
         slotId: mapping.targetSlotId,
@@ -336,7 +385,7 @@ function emitWrap(
         component: createWrapLayout({ wrapper, widgetId: defaultContentId }),
       }];
     }
-    /* Split: best-effort wrap of every widget in each sub-slot (over-wraps Inserts). */
+    /* Split or app-provided: best-effort wrap of every widget in each sub-slot (over-wraps Inserts). */
     return splitSlotIds.map((slotId) => ({
       slotId,
       op: LayoutOperationTypes.REPLACE,
@@ -344,13 +393,15 @@ function emitWrap(
     }));
   }
 
-  const owningSlot = locateOwningSlot(entry.widgetId, mapping, widgetMap, apps)
-    ?? mapping.targetSlotId;
-  return [{
-    slotId: owningSlot,
+  const owningSlots = locateOwningSlots(entry.widgetId, mapping, widgetMap, apps, ownInserts);
+  if (owningSlots.length === 0) {
+    owningSlots.push(mapping.targetSlotId);
+  }
+  return owningSlots.map((slotId) => ({
+    slotId,
     op: LayoutOperationTypes.REPLACE,
     component: createWrapLayout({ wrapper, widgetId: entry.widgetId }),
-  }];
+  }));
 }
 
 const warned = new Set<string>();
